@@ -72,7 +72,7 @@ def close_popups(driver):
         driver.find_element(By.CSS_SELECTOR, ".css-yi9ndv").click()
 
 def main():
-    chrome.get("https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7") # https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7
+    chrome.get("https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7")
     wait = WebDriverWait(chrome, timeout=20)
     final_job_list = []
 
