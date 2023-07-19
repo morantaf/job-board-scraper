@@ -1,7 +1,6 @@
-import pdb
 import re
 import time
-import pprint
+import csv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common import exceptions
@@ -12,6 +11,7 @@ chrome = webdriver.Chrome()
 ACCEPTED_CITIES = {"amsterdam","utrecht","rotterdam", "hoofddorp"}
 BLACKLISTED_WORDS = {"senior", "lead", "php", "full-stack", "fullstack"}
 LANGUAGES_DESIRED = {"java", "python"}
+CSV_HEADER = ["Job Title", "Company", "Location", "Description", "Source"]
 
 def has_blacklisted_word(title): 
     for word in title.lower().split():
@@ -64,6 +64,21 @@ def do_job_refers_language(job, wait):
         print(f"didn't find description for {job.text}")
     return False
 
+def transform_job_to_csv_line(driver):
+    line = {}
+    right_pane = driver.find_element(By.CLASS_NAME, "jobsearch-JobComponent")
+    job_title = right_pane.find_element(By.CSS_SELECTOR, ".jobsearch-JobInfoHeader-title.is-embedded").text
+    company = right_pane.find_element(By.CSS_SELECTOR, ".css-1cjkto6").text
+    location = right_pane.find_element(By.CSS_SELECTOR, ".css-6z8o9s").text
+    description = right_pane.find_element(By.ID,"jobDescriptionText").text
+    line[CSV_HEADER[0]] = job_title
+    line[CSV_HEADER[1]] = company
+    line[CSV_HEADER[2]] = location
+    line[CSV_HEADER[3]] = description
+
+    return line
+
+
 def close_popups(driver):
     
     if len(driver.find_elements(By.ID,"google-Only-Modal")) > 0:
@@ -71,10 +86,16 @@ def close_popups(driver):
     if len(driver.find_elements(By.ID,"mosaic-desktopserpjapopup")) > 0:
         driver.find_element(By.CSS_SELECTOR, ".css-yi9ndv").click()
 
+def save_as_csv(job_list):
+    with open("jobs.csv", 'w', newline= "") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames= CSV_HEADER)
+            writer.writeheader()
+            writer.writerows(job_list)
+
 def main():
     chrome.get("https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7")
     wait = WebDriverWait(chrome, timeout=20)
-    final_job_list = []
+    job_list = []
 
     accept_cookie(chrome, wait)
 
@@ -85,21 +106,21 @@ def main():
         filtered_jobs = list(filter(filter_div,jobs))
         for job in filtered_jobs:
             if do_job_refers_language(job, wait):
-                final_job_list.append(job)
+                csv_line = transform_job_to_csv_line(chrome)
+                job_list.append(csv_line)
             sleep(3)
 
         pagination_buttons = chrome.find_elements(By.CSS_SELECTOR,".css-13p07ha")
         if len(pagination_buttons) > 0:
             last_button = pagination_buttons[-1]
-            print(last_button.get_attribute("data-testid"))
             if last_button.get_attribute("data-testid") == "pagination-page-next":
                 last_button.click()
             else:
                 break
         else:
             break
-        
-    # pprint.pprint(list(map(lambda x: x.text, final_job_list)))
-    
+
+    if len(job_list) > 0:
+        save_as_csv(job_list)
 
 main()
