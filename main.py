@@ -1,6 +1,7 @@
 import pdb
 import re
 import time
+import pprint
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common import exceptions
@@ -45,34 +46,60 @@ def sleep(seconds):
     return True
 
 def accept_cookie(driver, wait):
-    wait.until(lambda d: d.find_element(By.CLASS_NAME,"ot-sdk-container"))
-    cookie_button = driver.find_element(By.ID, "onetrust-reject-all-handler")
-    if cookie_button:
+    cookie_popup = wait.until(lambda d: d.find_elements(By.CLASS_NAME,"ot-sdk-container"))
+    if len(cookie_popup) > 0:
+        cookie_button = driver.find_element(By.ID, "onetrust-reject-all-handler")
         cookie_button.click()
-        sleep(3)
 
+def do_job_refers_language(job, wait):
+    job.find_element(By.CLASS_NAME, "jcs-JobTitle").click()
+    try:
+        description = wait.until(lambda c: c.find_element(By.CLASS_NAME,"jobsearch-JobComponent"))
+        job_requirements = description.find_elements(By.TAG_NAME,"li")
+        requirement_list = list(map(lambda x: x.text, job_requirements))
+        for requirement in requirement_list:
+            if refers_language(requirement):
+                return True
+    except exceptions.TimeoutException:
+        print(f"didn't find description for {job.text}")
+    return False
+
+def close_popups(driver):
+    
+    if len(driver.find_elements(By.ID,"google-Only-Modal")) > 0:
+        driver.find_element(By.CLASS_NAME, "icl-CloseButton").click()
+    if len(driver.find_elements(By.ID,"mosaic-desktopserpjapopup")) > 0:
+        driver.find_element(By.CSS_SELECTOR, ".css-yi9ndv").click()
 
 def main():
-    chrome.get("https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7")
+    chrome.get("https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7") # https://nl.indeed.com/jobs?q=Backend+Developer&l=Amsterdam&fromage=7
     wait = WebDriverWait(chrome, timeout=20)
     final_job_list = []
 
     accept_cookie(chrome, wait)
 
-    jobs = chrome.find_elements(By.CLASS_NAME, "resultContent")
-    filtered_jobs = list(filter(filter_div,jobs))
-    for job in filtered_jobs[:4]:
-        job.find_element(By.CLASS_NAME, "jcs-JobTitle").click()
-        try:
-            description = wait.until(lambda c: c.find_element(By.CLASS_NAME,"jobsearch-JobComponent"))
-            job_requirements = description.find_elements(By.TAG_NAME,"li")
-            requirement_list = list(map(lambda x: x.text, job_requirements))
-            for requirement in requirement_list:
-                if refers_language(requirement):
-                    final_job_list.append(job)
-        except exceptions.TimeoutException:
-            print(f"didn't find description for {job.text}")
+    while True:
+        sleep(2)
+        close_popups(chrome)
+        jobs = chrome.find_elements(By.CLASS_NAME, "resultContent")
+        filtered_jobs = list(filter(filter_div,jobs))
+        for job in filtered_jobs:
+            if do_job_refers_language(job, wait):
+                final_job_list.append(job)
+            sleep(3)
+
+        pagination_buttons = chrome.find_elements(By.CSS_SELECTOR,".css-13p07ha")
+        if len(pagination_buttons) > 0:
+            last_button = pagination_buttons[-1]
+            print(last_button.get_attribute("data-testid"))
+            if last_button.get_attribute("data-testid") == "pagination-page-next":
+                last_button.click()
+            else:
+                break
+        else:
+            break
+        
+    # pprint.pprint(list(map(lambda x: x.text, final_job_list)))
     
-        sleep(3)
 
 main()
