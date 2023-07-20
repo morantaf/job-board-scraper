@@ -11,7 +11,7 @@ chrome = webdriver.Chrome()
 ACCEPTED_CITIES = {"amsterdam", "utrecht", "rotterdam", "hoofddorp"}
 BLACKLISTED_WORDS = {"senior", "lead", "php", "full-stack", "fullstack"}
 LANGUAGES_DESIRED = {"java", "python"}
-CSV_HEADER = ["Job Title", "Company", "Location", "Description", "Source"]
+CSV_HEADER = ["Job Title", "Company", "Location", "Description", "Link", "Source"]
 
 
 def has_blacklisted_word(title):
@@ -73,8 +73,9 @@ def do_job_refers_language(job, wait):
     return False
 
 
-def transform_job_to_csv_line(driver):
+def transform_job_to_csv_line(job, driver):
     line = {}
+    link = job.find_element(By.CLASS_NAME, "jcs-JobTitle").get_attribute("href")
     right_pane = driver.find_element(By.CLASS_NAME, "jobsearch-JobComponent")
     job_title = right_pane.find_element(By.CSS_SELECTOR, ".jobsearch-JobInfoHeader-title.is-embedded").text
     company = right_pane.find_element(By.CSS_SELECTOR, ".css-1cjkto6").text
@@ -84,6 +85,7 @@ def transform_job_to_csv_line(driver):
     line[CSV_HEADER[1]] = company
     line[CSV_HEADER[2]] = location
     line[CSV_HEADER[3]] = description
+    line[CSV_HEADER[4]] = link
 
     return line
 
@@ -117,7 +119,7 @@ def main():
         filtered_jobs = list(filter(filter_div, jobs))
         for job in filtered_jobs:
             if do_job_refers_language(job, wait):
-                csv_line = transform_job_to_csv_line(chrome)
+                csv_line = transform_job_to_csv_line(job, chrome)
                 job_list.append(csv_line)
             sleep(3)
 
