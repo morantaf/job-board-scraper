@@ -1,4 +1,5 @@
 import csv
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common import exceptions
 from selenium.webdriver.support.wait import WebDriverWait
@@ -100,3 +101,8 @@ class IndeedScraper(Scraper):
 
         if len(job_list) > 0:
             self.save_as_csv(job_list, self.filename)
+
+if __name__ == "__main__":
+    chrome = webdriver.Chrome()
+    indeed_scraper = IndeedScraper(main.JOB_TITLE, main.LOCATION, main.blacklisted_words, main.accepted_cities, main.languages_accepted, chrome)
+    indeed_scraper.scrape()
