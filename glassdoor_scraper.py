@@ -1,5 +1,3 @@
-import pdb
-import main
 from scraper import Scraper
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -91,9 +89,4 @@ class GlassdoorScraper(Scraper):
 
         if len(job_list) > 0:
             self.save_as_csv(job_list, self.filename)
-                
 
-if __name__ == "__main__":
-    chrome = webdriver.Chrome()
-    glassdoor_scraper = GlassdoorScraper(main.JOB_TITLE, main.LOCATION, main.blacklisted_words, main.accepted_cities, main.languages_accepted, chrome)
-    glassdoor_scraper.scrape()
